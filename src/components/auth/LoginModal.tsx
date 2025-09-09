@@ -179,9 +179,9 @@ export function LoginModal({ isOpen, onClose, language, userRole = 'student' }: 
     setError('');
     
     try {
-      // Note: Social login setup required at Supabase dashboard
+      // Note: Social login setup required for production
       // For demo purposes, showing the method
-      alert(`Social login with ${provider} requires configuration at Supabase dashboard. Please use email/password for now.`);
+      alert(`Social login with ${provider} is not configured in this demo. Please use email/password for now.`);
     } catch (error) {
       setError('Social login failed');
     } finally {

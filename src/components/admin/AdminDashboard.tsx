@@ -17,7 +17,6 @@ import {
   Download,
   RefreshCw
 } from 'lucide-react';
-import { api, supabase } from '../../utils/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
 interface Analytics {
@@ -62,14 +61,38 @@ export function AdminDashboard() {
       setLoading(true);
       setError('');
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setError('Authentication required');
-        return;
-      }
-
-      const response = await api.getAnalytics(session.access_token);
-      setAnalytics(response.analytics);
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock analytics data
+      const mockAnalytics: Analytics = {
+        overview: {
+          total_users: 1247,
+          total_chat_sessions: 3892,
+          total_appointments: 156,
+          crisis_incidents: 23
+        },
+        mood_trends: {
+          minimal: 45,
+          mild: 32,
+          moderate: 18,
+          severe: 5
+        },
+        top_topics: {
+          'Academic Stress': 387,
+          'Anxiety': 291,
+          'Relationships': 156,
+          'Family Issues': 98,
+          'Self Improvement': 67
+        },
+        monthly_trend: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          chat_sessions: [234, 298, 387, 456, 512, 623],
+          mood_assessments: [156, 189, 234, 267, 298, 345]
+        }
+      };
+      
+      setAnalytics(mockAnalytics);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to load analytics:', error);

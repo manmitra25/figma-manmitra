@@ -6,7 +6,6 @@ import { Badge } from '../ui/badge';
 import { Textarea } from '../ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { MessageCircle, Send, Mic, Heart, Shield, AlertTriangle, Phone, BookOpen } from 'lucide-react';
-import { api, supabase } from '../../utils/supabase/client';
 
 interface Message {
   id: string;
@@ -160,20 +159,8 @@ export function BestieChat({
     const topic = t.topics.find(t => t.id === topicId);
     
     try {
-      // Get access token if user is authenticated
-      let accessToken = undefined;
-      if (!isAnonymous) {
-        const { data: { session } } = await supabase.auth.getSession();
-        accessToken = session?.access_token;
-      }
-      
-      // Start chat session with backend
-      const response = await api.startChatSession({
-        topic: topicId,
-        language,
-        anonymous: isAnonymous
-      }, accessToken);
-      
+      // Start local chat session (no backend)
+      const response = { sessionId: Date.now().toString() } as const;
       setSessionId(response.sessionId);
       
       // Add initial Bestie message
@@ -187,7 +174,7 @@ export function BestieChat({
       setMessages([initialMessage]);
     } catch (error) {
       console.error('Failed to start chat session:', error);
-      // Fallback to local chat mode
+      // Use local chat mode
       setIsOfflineMode(true);
       const initialMessage: Message = {
         id: '1',
@@ -267,51 +254,14 @@ export function BestieChat({
       return;
     }
 
-    // Send message to backend if session exists
-    if (sessionId) {
-      try {
-        // Get access token if user is authenticated
-        let accessToken = undefined;
-        if (!isAnonymous) {
-          const { data: { session } } = await supabase.auth.getSession();
-          accessToken = session?.access_token;
-        }
-        
-        const result = await api.sendMessage(sessionId, messageContent, 'user', accessToken);
-        if (result.crisisDetected) {
-          setTimeout(() => setShowCrisisDialog(true), 1000);
-        }
-      } catch (error) {
-        console.error('Failed to send message to backend:', error);
-        // Switch to offline mode if backend fails
-        if (!isOfflineMode) {
-          setIsOfflineMode(true);
-        }
-      }
-    }
+    // Use local chat mode (no backend)
+    setIsOfflineMode(true);
 
     // Simulate Bestie typing
     setIsTyping(true);
     setTimeout(async () => {
       const bestieResponse = simulateBestieResponse(messageContent);
       setMessages(prev => [...prev, bestieResponse]);
-      
-      // Send Bestie response to backend
-      if (sessionId) {
-        try {
-          // Get access token if user is authenticated
-          let accessToken = undefined;
-          if (!isAnonymous) {
-            const { data: { session } } = await supabase.auth.getSession();
-            accessToken = session?.access_token;
-          }
-          
-          await api.sendMessage(sessionId, bestieResponse.content, 'bestie', accessToken);
-        } catch (error) {
-          console.error('Failed to send Bestie response to backend:', error);
-        }
-      }
-      
       setIsTyping(false);
     }, 1500);
   };

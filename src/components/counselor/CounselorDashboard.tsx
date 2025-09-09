@@ -5,7 +5,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Calendar, Users, AlertTriangle, FileText, Clock, Phone, MessageSquare } from 'lucide-react';
-import { api, supabase } from '../../utils/supabase/client';
 import { useAuth } from '../auth/AuthProvider';
 
 interface CrisisAlert {
@@ -37,73 +36,64 @@ export function CounselorDashboard() {
 
   useEffect(() => {
     if (user) {
-      loadDashboardData();
-      // Set up periodic refresh for alerts
-      const interval = setInterval(loadAlerts, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
+      loadMockData();
     }
   }, [user]);
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-
-      await Promise.all([
-        loadAlerts(),
-        loadAppointments()
-      ]);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAlerts = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-
-      const response = await api.getCrisisAlerts(session.access_token);
-      setAlerts(response.alerts || []);
-    } catch (error) {
-      console.error('Failed to load alerts:', error);
-    }
-  };
-
-  const loadAppointments = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-
-      const response = await api.getAppointments(session.access_token);
-      setAppointments(response.appointments || []);
-    } catch (error) {
-      console.error('Failed to load appointments:', error);
-    }
+  const loadMockData = async () => {
+    setLoading(true);
+    
+    // Simulate loading delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock alerts
+    setAlerts([
+      {
+        id: '1',
+        type: 'crisis',
+        severity: 'high',
+        timestamp: new Date().toISOString(),
+        user_id: 'student_1',
+        description: 'Student expressing thoughts of self-harm'
+      },
+      {
+        id: '2',
+        type: 'severe_mood',
+        severity: 'medium',
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        user_id: 'student_2',
+        description: 'Severe anxiety during exams'
+      }
+    ]);
+    
+    // Mock appointments
+    setAppointments([
+      {
+        id: '1',
+        student_name: 'Anonymous Student',
+        date: new Date().toISOString(),
+        time: '14:00',
+        topic: 'Academic Stress',
+        status: 'confirmed',
+        share_chat_summary: true
+      },
+      {
+        id: '2',
+        student_name: 'Anonymous Student',
+        date: new Date(Date.now() + 86400000).toISOString(),
+        time: '10:30',
+        topic: 'Relationship Issues',
+        status: 'pending',
+        share_chat_summary: false
+      }
+    ]);
+    
+    setLoading(false);
   };
 
   const handleAlert = async (alertId: string, action: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
-
-      await api.handleCrisisAlert(
-        session.access_token,
-        alertId,
-        action,
-        `Alert handled with action: ${action}`
-      );
-
-      // Refresh alerts
-      await loadAlerts();
-    } catch (error) {
-      console.error('Failed to handle alert:', error);
-      setError('Failed to handle alert');
-    }
+    // Mock alert handling
+    setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
   const formatDate = (dateString: string) => {

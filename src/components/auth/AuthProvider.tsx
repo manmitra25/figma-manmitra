@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, api } from '../../utils/supabase/client';
-import { User } from '@supabase/supabase-js';
+
+interface User {
+  id: string;
+  email: string;
+}
 
 interface UserProfile {
   id: string;
@@ -49,99 +52,54 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const fetchProfile = async (accessToken: string) => {
-    try {
-      if (!accessToken) {
-        console.warn('No access token provided for profile fetch');
-        setProfile(null);
-        return;
-      }
-      
-      const profileData = await api.getProfile(accessToken);
-      setProfile(profileData);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      // If profile fetch fails, user might not be fully registered yet
-      setProfile(null);
+  const fetchProfile = async () => {
+    // Mock profile data
+    if (user) {
+      setProfile({
+        id: user.id,
+        email: user.email,
+        name: 'Demo User',
+        role: 'student',
+        privacy_consents: {
+          share_chat_history: true,
+          crisis_escalation: true,
+          analytics_participation: false
+        }
+      });
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        await fetchProfile(session.access_token);
-      }
+      await fetchProfile();
     }
   };
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-        } else if (session?.user) {
-          setUser(session.user);
-          await fetchProfile(session.access_token);
-        }
-      } catch (error) {
-        console.error('Session initialization error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        if (session?.user && session?.access_token) {
-          setUser(session.user);
-          // Only fetch profile for non-anonymous users and after successful sign up
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            await fetchProfile(session.access_token);
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Sign in error:', error.message);
-        return { error: error.message };
-      }
-
-      if (data.session?.access_token) {
-        await fetchProfile(data.session.access_token);
-      }
-
+      
+      // Mock authentication - accept any email/password
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockUser = {
+        id: '1',
+        email: email
+      };
+      
+      setUser(mockUser);
+      await fetchProfile();
+      
       return {};
     } catch (error) {
-      console.error('Unexpected sign in error:', error);
-      return { error: 'An unexpected error occurred during sign in' };
+      console.error('Mock sign in error:', error);
+      return { error: 'An error occurred during sign in' };
     } finally {
       setLoading(false);
     }
@@ -157,33 +115,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setLoading(true);
       
-      // Register user via our API (which handles user creation and profile setup)
-      const result = await api.register(userData);
-      
-      if (result.error) {
-        return { error: result.error };
-      }
-
-      // Wait a moment for user creation to complete
+      // Mock sign up - just simulate delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Now sign in the user
-      const signInResult = await signIn(userData.email, userData.password);
       
-      // If sign in is successful, wait a bit more and try to fetch profile
-      if (!signInResult.error) {
-        setTimeout(async () => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            await fetchProfile(session.access_token);
-          }
-        }, 2000);
-      }
-      
-      return signInResult;
+      // Auto sign in after sign up
+      return await signIn(userData.email, userData.password);
       
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('Mock sign up error:', error);
       return { error: 'Failed to create account. Please try again.' };
     } finally {
       setLoading(false);
@@ -193,16 +132,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Sign out error:', error);
-      }
-      
       setUser(null);
       setProfile(null);
     } catch (error) {
-      console.error('Unexpected sign out error:', error);
+      console.error('Mock sign out error:', error);
     } finally {
       setLoading(false);
     }
@@ -214,19 +147,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { error: 'User not authenticated' };
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        return { error: 'No valid session' };
+      // Mock update - just update local state
+      if (profile) {
+        setProfile({
+          ...profile,
+          privacy_consents: {
+            share_chat_history: consents.share_chat_history ?? profile.privacy_consents?.share_chat_history ?? false,
+            crisis_escalation: consents.crisis_escalation ?? profile.privacy_consents?.crisis_escalation ?? false,
+            analytics_participation: consents.analytics_participation ?? profile.privacy_consents?.analytics_participation ?? false
+          }
+        });
       }
-
-      await api.updatePrivacySettings(session.access_token, consents);
-      
-      // Refresh profile to get updated consents
-      await fetchProfile(session.access_token);
       
       return {};
     } catch (error) {
-      console.error('Privacy settings update error:', error);
+      console.error('Mock privacy settings update error:', error);
       return { error: 'Failed to update privacy settings' };
     }
   };
